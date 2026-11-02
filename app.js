@@ -78,7 +78,7 @@
     var b = $('bubble');
     if (S.overview) { b.classList.remove('show'); return; }
     var e = E[S.idx];
-    $('bTitle').textContent = e.t;
+    $('bTitle').textContent = (S.idx + 1) + ' · ' + e.t;
     $('bMeta').innerHTML = esc('◷ ' + e.age + ' · ⌖ ' + placeName(S.idx)) + '<br>' + esc('↗ ' + legText(S.idx));
     b.classList.toggle('nopin', !loc(S.idx));
     setBubble(arrivalSide());
@@ -160,8 +160,11 @@
 
   /* ---------- map overlays ---------- */
   function pin(active) {
-    /* only the current event gets a big numbered pin; earlier ones are small dots, so map names stay readable */
-    return { path: google.maps.SymbolPath.CIRCLE, scale: active ? 12 : 5, fillColor: active ? '#c28a2c' : '#1d5a73', fillOpacity: active ? 1 : 0.9, strokeColor: '#ffffff', strokeWeight: active ? 3 : 1.5 };
+    /* The map's own place names must stay readable, so nothing solid sits on them: the current event is a hollow gold ring with a
+       tiny centre dot (its number is in the bubble), and earlier events are small dots. */
+    var C = google.maps.SymbolPath.CIRCLE;
+    return active ? { path: C, scale: 11, fillOpacity: 0, strokeColor: '#c28a2c', strokeWeight: 3 }
+                  : { path: C, scale: 3.5, fillColor: '#1d5a73', fillOpacity: 0.9, strokeColor: '#ffffff', strokeWeight: 1.2 };
   }
   function clearOverlays() {
     cancelAnimationFrame(S.raf); S.raf = 0;
@@ -181,11 +184,14 @@
       seen[key] = 1;
       var active = j === S.idx;
       var m = new google.maps.Marker({
-        map: S.map, position: pt(j), title: placeName(j) + ': ' + E[j].t, zIndex: active ? 10 : 1, icon: pin(active),
-        label: active ? { text: String(j + 1), color: '#ffffff', fontWeight: '700', fontSize: '12px' } : null
+        map: S.map, position: pt(j), title: (j + 1) + '. ' + placeName(j) + ': ' + E[j].t, zIndex: active ? 10 : 1, icon: pin(active)
       });
       m.addListener('click', (function (k) { return function () { stop(); go(k); }; })(j));
       S.markers.push(m);
+      if (active) {   // white halo under the ring and a small centre dot, so the exact spot reads clearly without hiding the name
+        S.markers.push(new google.maps.Marker({ map: S.map, position: pt(j), clickable: false, zIndex: 9, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 11, fillOpacity: 0, strokeColor: '#ffffff', strokeWeight: 7, strokeOpacity: 0.9 } }));
+        S.markers.push(new google.maps.Marker({ map: S.map, position: pt(j), clickable: false, zIndex: 11, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 2.6, fillColor: '#c28a2c', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 1 } }));
+      }
     }
   }
   function drawRoute(a, b) {
@@ -333,8 +339,8 @@
         S.layers.push(new google.maps.Circle({ map: S.map, center: c.center, radius: r * h[0], fillColor: h[1], fillOpacity: h[2], strokeWeight: 0, clickable: false, zIndex: 1 }));
       });
       S.layers.push(new google.maps.Marker({ map: S.map, position: c.center, clickable: false, zIndex: 3, title: c.name + ': ' + c.n + (c.n === 1 ? ' event' : ' events'),
-        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 11, fillColor: '#16222c', fillOpacity: 0.92, strokeColor: '#ffffff', strokeWeight: 2 },
-        label: { text: String(c.n), color: '#ffffff', fontWeight: '700', fontSize: '12px' } }));
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 9, fillColor: '#16222c', fillOpacity: 0.78, strokeColor: '#ffffff', strokeWeight: 1.5 },
+        label: { text: String(c.n), color: '#ffffff', fontWeight: '700', fontSize: '11px' } }));
     });
     var st = ringStats(ring);
     $('lgTop').textContent = 'Most events: ' + cl.slice(0, 3).map(function (c) { return c.name + ' ' + c.n; }).join(' · ');
