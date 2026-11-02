@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d5a73">
+<meta name="description" content="Follow the life of Jesus on Google Maps, event by event, with distances from where you live.">
+<meta property="og:title" content="In His Footsteps">
+<meta property="og:description" content="Follow the life of Jesus on the map, event by event.">
+<title>In His Footsteps</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="stage">
+  <div id="map" role="application" aria-label="Map of the life of Jesus"></div>
+  <div id="bubble" class="bubble" aria-live="polite"><strong id="bTitle"></strong><span id="bMeta"></span></div>
+</div>
+
+<header class="top">
+  <div class="place">
+    <button id="chip" class="chip" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="placeMenu"><span id="chipText">Holy Land</span><span class="caret" aria-hidden="true">&#9662;</span></button>
+    <div id="placeMenu" class="dropdown" role="menu" aria-label="Choose a map" hidden></div>
+  </div>
+  <button id="menuBtn" class="fab" type="button" aria-label="Menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet"><span aria-hidden="true">&#8942;</span></button>
+</header>
+
+<div id="banner" class="banner" role="alert" hidden></div>
+
+<section id="legend" class="legend" hidden aria-label="Heat map and travel area">
+  <div class="lg-head"><span class="lg-title">Where the events happened</span><button id="lgExit" type="button" aria-label="Back to journey">Back</button></div>
+  <div class="lg-heat" aria-hidden="true"><span>Fewer</span><i class="lg-bar"></i><span>More</span></div>
+  <p id="lgTop"></p>
+  <p id="lgArea"></p>
+</section>
+
+<nav class="rail" aria-label="Events and navigation">
+  <ol id="ladder" class="ladder"></ol>
+  <div class="nav3">
+    <button id="prev" class="nb side" type="button" aria-label="Previous event">&#8249;</button>
+    <button id="play" class="nb mid" type="button" aria-label="Play">&#9654;</button>
+    <button id="next" class="nb main" type="button" aria-label="Next event">&#8250;</button>
+  </div>
+</nav>
+
+<div id="scrim" class="scrim"></div>
+<aside id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-hidden="true" inert>
+  <div class="sheet-head"><h2 id="sheetTitle">Menu</h2><button id="closeBtn" class="x" type="button" aria-label="Close menu">&#10005;</button></div>
+  <div class="sheet-body" id="sheetBody">
+    <section>
+      <h3>Heat map &amp; travel area</h3>
+      <ol id="heatList" class="heat"></ol>
+      <p id="heatArea" class="heat-area"></p>
+      <button id="overviewBtn" class="wide" type="button" aria-pressed="false">Show on map</button>
+    </section>
+    <section>
+      <h3>Map</h3>
+      <div class="seg" role="group" aria-label="Map mode">
+        <button id="modeHoly" type="button">Holy Land</button>
+        <button id="modeHome" type="button">My city</button>
+      </div>
+      <form id="cityForm" class="city" autocomplete="off">
+        <input id="cityInput" type="text" placeholder="Type your city, e.g. Kochi" aria-label="Your city" enterkeyhint="go">
+        <button type="submit">Go</button>
+      </form>
+      <p id="cityMsg" class="msg" role="status"></p>
+      <div id="presets" class="presets"></div>
+    </section>
+    <section>
+      <h3>Read this passage</h3>
+      <p id="passage" class="passage"></p>
+      <div class="links">
+        <a id="linkNIV" target="_blank" rel="noopener noreferrer">NIV</a>
+        <a id="linkKJV" target="_blank" rel="noopener noreferrer">KJV</a>
+        <a id="linkOT" target="_blank" rel="noopener noreferrer" hidden></a>
+      </div>
+    </section>
+    <section>
+      <h3>Share</h3>
+      <button id="shareBtn" class="wide" type="button">Share on WhatsApp</button>
+    </section>
+    <p class="fine">Places are approximate modern sites. Distances are straight-line, not walking routes. Places the passage does not name are not pinned.</p>
+  </div>
+</aside>
+
+<script src="config.js"></script>
+<script src="config.local.js" onerror="this.remove()"></script>
+<script src="geo.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
