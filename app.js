@@ -2,14 +2,29 @@
   'use strict';
   var G = window.Geo, E = window.EVENTS, P = window.PLACES, cfg = window.APP_CONFIG || {};
   var LAST = E.length - 1, BETH = P.bethlehem, CLOSE = 12;
+  /* Built-in cities work with no Google search. `alias` are other names people type (typing "Calcutta" finds Kolkata). */
   var PRESETS = [
-    { name: 'Kottayam', lat: 9.5916, lng: 76.5222 }, { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
-    { name: 'Bengaluru', lat: 12.9716, lng: 77.5946 }, { name: 'Dubai', lat: 25.2048, lng: 55.2708 },
-    { name: 'Singapore', lat: 1.3521, lng: 103.8198 }, { name: 'London', lat: 51.5072, lng: -0.1276 },
-    { name: 'New York', lat: 40.7128, lng: -74.0060 }
+    { name: 'Kottayam', lat: 9.5916, lng: 76.5222 },
+    { name: 'Cochin', lat: 9.9312, lng: 76.2673, alias: ['kochi', 'ernakulam'] },
+    { name: 'Trivandrum', lat: 8.5241, lng: 76.9366, alias: ['thiruvananthapuram'] },
+    { name: 'Chennai', lat: 13.0827, lng: 80.2707, alias: ['madras'] },
+    { name: 'Bengaluru', lat: 12.9716, lng: 77.5946, alias: ['bangalore'] },
+    { name: 'Hyderabad', lat: 17.3850, lng: 78.4867 },
+    { name: 'Mumbai', lat: 19.0760, lng: 72.8777, alias: ['bombay'] },
+    { name: 'Pune', lat: 18.5204, lng: 73.8567, alias: ['poona'] },
+    { name: 'Ahmedabad', lat: 23.0225, lng: 72.5714 },
+    { name: 'Delhi', lat: 28.6139, lng: 77.2090, alias: ['new delhi'] },
+    { name: 'Kolkata', lat: 22.5726, lng: 88.3639, alias: ['calcutta'] },
+    { name: 'Dubai', lat: 25.2048, lng: 55.2708 },
+    { name: 'London', lat: 51.5072, lng: -0.1276 },
+    { name: 'New York', lat: 40.7128, lng: -74.0060, alias: ['nyc', 'new york city'] }
   ];
+  function presetFor(q) {
+    q = String(q).trim().toLowerCase();
+    return PRESETS.filter(function (c) { return c.name.toLowerCase() === q || (c.alias || []).indexOf(q) >= 0; })[0];
+  }
   var STORE = 'ihf.v1';
-  var S = { idx: 0, mode: 'holy', home: null, map: null, markers: [], layers: [], overview: false, route: null, dot: null, raf: 0, playing: false, fly: 0, loaded: false, gmErr: '', sheet: false, prevFocus: null };
+  var S = { idx: 0, mode: 'holy', home: null, map: null, markers: [], layers: [], overview: false, route: null, dot: null, raf: 0, playing: false, fly: 0, loaded: false, voice: true, music: true, gmErr: '', sheet: false, prevFocus: null };
 
   function $(id) { return document.getElementById(id); }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -34,8 +49,8 @@
   }
 
   /* ---------- persistence and URL ---------- */
-  function save() { try { localStorage.setItem(STORE, JSON.stringify({ mode: S.mode, home: S.home })); } catch (e) {} }
-  function restore() { try { var o = JSON.parse(localStorage.getItem(STORE) || 'null'); if (o && o.mode === 'home' && o.home && isFinite(o.home.lat)) { S.mode = 'home'; S.home = o.home; } } catch (e) {} }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify({ mode: S.mode, home: S.home, voice: S.voice, music: S.music })); } catch (e) {} }
+  function restore() { try { var o = JSON.parse(localStorage.getItem(STORE) || 'null'); if (o && o.voice === false) S.voice = false; if (o && o.music === false) S.music = false; if (o && o.mode === 'home' && o.home && isFinite(o.home.lat)) S.home = o.home;   /* remembered for the My city button, but the app always opens on the Holy Land */ } catch (e) {} }
   function readUrl() {
     var q = new URLSearchParams(location.search), e = parseInt(q.get('e'), 10);
     if (e >= 1 && e <= E.length) S.idx = e - 1;
@@ -66,6 +81,7 @@
     $('bTitle').textContent = e.t;
     $('bMeta').innerHTML = esc('◷ ' + e.age + ' · ⌖ ' + placeName(S.idx)) + '<br>' + esc('↗ ' + legText(S.idx));
     b.classList.toggle('nopin', !loc(S.idx));
+    setBubble(arrivalSide());
     b.classList.add('show');
   }
   function renderCard() {
@@ -144,7 +160,8 @@
 
   /* ---------- map overlays ---------- */
   function pin(active) {
-    return { path: google.maps.SymbolPath.CIRCLE, scale: active ? 15 : 10, fillColor: active ? '#c28a2c' : '#1d5a73', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: active ? 3 : 2 };
+    /* only the current event gets a big numbered pin; earlier ones are small dots, so map names stay readable */
+    return { path: google.maps.SymbolPath.CIRCLE, scale: active ? 12 : 5, fillColor: active ? '#c28a2c' : '#1d5a73', fillOpacity: active ? 1 : 0.9, strokeColor: '#ffffff', strokeWeight: active ? 3 : 1.5 };
   }
   function clearOverlays() {
     cancelAnimationFrame(S.raf); S.raf = 0;
@@ -165,7 +182,7 @@
       var active = j === S.idx;
       var m = new google.maps.Marker({
         map: S.map, position: pt(j), title: placeName(j) + ': ' + E[j].t, zIndex: active ? 10 : 1, icon: pin(active),
-        label: { text: String(j + 1), color: '#ffffff', fontWeight: '700', fontSize: active ? '13px' : '11px' }
+        label: active ? { text: String(j + 1), color: '#ffffff', fontWeight: '700', fontSize: '12px' } : null
       });
       m.addListener('click', (function (k) { return function () { stop(); go(k); }; })(j));
       S.markers.push(m);
@@ -174,6 +191,11 @@
   function drawRoute(a, b) {
     S.route = new google.maps.Polyline({ map: S.map, path: [a, b], strokeOpacity: 0, clickable: false,
       icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, strokeColor: '#c28a2c', scale: 3 }, offset: '0', repeat: '14px' }] });
+  }
+  /* the distance, written on the middle of the line */
+  function kmTag(a, b, km) {
+    S.layers.push(new google.maps.Marker({ map: S.map, position: { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 }, clickable: false, zIndex: 6,
+      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, label: { text: G.fmtKm(km), className: 'km-tag', color: '#16222c', fontWeight: '700', fontSize: '12px' } }));
   }
   function runDot(a, b, ms) {
     var dot = new google.maps.Marker({ map: S.map, position: a, clickable: false, zIndex: 5,
@@ -188,6 +210,21 @@
     })(t0);
   }
 
+  /* a place marked wide (Egypt) is shown from afar: both ends and the line between them, no zoom in */
+  function isWide(i) { var p = E[i].place; return !!(p && P[p].wide); }
+  function showCue() { $('chip').classList.add('cue'); $('pointer').hidden = false; }
+  function hideCue() { $('chip').classList.remove('cue'); $('pointer').hidden = true; }
+  function showIntro() { $('start').hidden = false; document.body.classList.add('intro'); }
+  function hideIntro() { $('start').hidden = true; document.body.classList.remove('intro'); }
+  /* The bubble must not cover the route being drawn. The route arrives from the previous event, so the bubble sits on the side
+     away from it (below the pin when the route comes from the north). During the long view of a far move it is docked at the top. */
+  function setBubble(side) { var b = $('bubble'); b.classList.remove('above', 'below', 'dock'); b.classList.add(side); }
+  function arrivalSide() {
+    var pj = prevIdx(S.idx); if (pj < 0 || !loc(S.idx)) return 'above';
+    if (isWide(S.idx)) return 'dock';   // the long view keeps both ends on screen, so the bubble stays at the top
+    var a = pt(pj), b = pt(S.idx);
+    return a && b && a.lat > b.lat ? 'below' : 'above';
+  }
   function hideBubble() { $('bubble').classList.remove('show'); }
 
   /* ---------- camera: the target is always centred.
@@ -198,15 +235,24 @@
     var to = pt(S.idx); if (!to || !S.map) return;
     var pj = prevIdx(S.idx), from = pj >= 0 ? pt(pj) : null;
     var kind = pj < 0 ? 'near' : G.moveKind(G.inverse(loc(pj), loc(S.idx)).dist);
-    if (kind === 'far') {
+    if (kind === 'far' && isWide(S.idx)) {
+      setBubble('dock');
+      var el0 = $('map'), w0 = el0.clientWidth, h0 = el0.clientHeight;
+      var wide0 = Math.max(3, Math.min(CLOSE - 2, G.zoomToFit(from, to, w0, h0 - 2 * Math.min(200, h0 * 0.25), 50, CLOSE - 2)));
+      S.map.setZoom(wide0); S.map.panTo({ lat: (from.lat + to.lat) / 2, lng: (from.lng + to.lng) / 2 });
+      if (!(await stillCurrent(tk, 900))) return;
+      drawRoute(from, to); runDot(from, to, 1800); kmTag(from, to, G.inverse(loc(pj), loc(S.idx)).dist);
+      if (!(await stillCurrent(tk, 2000))) return;
+    } else if (kind === 'far') {
+      setBubble('dock');
       var el = $('map'), w = el.clientWidth, h = el.clientHeight;
       var wide = Math.max(3, Math.min(CLOSE - 2, G.zoomToFit(from, to, w, h - 2 * Math.min(200, h * 0.25), 50, CLOSE - 2)));
       S.map.setZoom(wide); S.map.panTo({ lat: (from.lat + to.lat) / 2, lng: (from.lng + to.lng) / 2 });
       if (!(await stillCurrent(tk, 1000))) return;
-      drawRoute(from, to); runDot(from, to, 1200);
+      drawRoute(from, to); runDot(from, to, 1200); kmTag(from, to, G.inverse(loc(pj), loc(S.idx)).dist);
       S.map.panTo(to);
       if (!(await stillCurrent(tk, 1250))) return;
-      S.map.setZoom(CLOSE);
+      S.map.setZoom(CLOSE); setBubble(arrivalSide());
       if (!(await stillCurrent(tk, 600))) return;
     } else {
       if (S.map.getZoom() !== CLOSE) S.map.setZoom(CLOSE);
@@ -228,7 +274,7 @@
   var CLUSTER_KM = 7, FENCE_KM = 6;
   function clusterEvents() {
     var items = [];
-    E.forEach(function (e, i) { if (e.place) items.push({ p: pt(i), name: P[e.place].name }); });
+    E.forEach(function (e, i) { if (e.place && !P[e.place].offmap) items.push({ p: pt(i), name: P[e.place].area || P[e.place].name }); });
     return G.cluster(items, CLUSTER_KM).map(function (g) {
       var lat = 0, lng = 0, tally = {};
       g.forEach(function (x) { lat += x.p.lat; lng += x.p.lng; tally[x.name] = (tally[x.name] || 0) + 1; });
@@ -237,7 +283,7 @@
     }).sort(function (a, b) { return b.n - a.n; });
   }
   function fenceRing() {
-    var pts = []; E.forEach(function (e, i) { if (e.place) pts.push(pt(i)); });
+    var pts = []; E.forEach(function (e, i) { if (e.place && !P[e.place].offmap) pts.push(pt(i)); });
     return G.bufferedHull(pts, FENCE_KM, 16);
   }
   function syncOverviewUI() {
@@ -299,30 +345,153 @@
   }
   function refreshView() { if (S.overview) showOverview(); else go(S.idx); }
 
+  /* ---------- narration: one short recorded line per event (audio/NN.mp3), spoken while the map moves ---------- */
+  var voice = new Audio(), endVoice = null;
+  function clip(i) { return 'audio/' + (i < 9 ? '0' : '') + (i + 1) + '.mp3'; }
+  function silence() { try { voice.pause(); } catch (e) {} if (endVoice) endVoice(); }
+  function ducked(on) { if (MU.on) musicLevel(on ? SOFT : QUIET, 0.5); }
+  /* resolves when the line has finished (or failed, or was cut off), so Play can pace itself on it */
+  function speak(i) {
+    silence();
+    if (!S.voice) return Promise.resolve();
+    return new Promise(function (res) {
+      var done = false, t = setTimeout(fin, 20000), unblock = null, tries = 0, failing = false;
+      function fin() {
+        if (done) return; done = true; clearTimeout(t); voice.onended = voice.onerror = null; endVoice = null; ducked(false);
+        if (unblock) { document.removeEventListener('pointerdown', unblock, true); unblock = null; if ($('banner').dataset.v) banner(''); }
+        res();
+      }
+      endVoice = fin; voice.onended = fin; ducked(true);
+      /* a failed load is tried once more (with a fresh request) before giving up */
+      voice.onerror = loadFailed;
+      function loadFailed() {
+        if (done || failing) return;
+        failing = true;
+        if (tries++ < 1) { setTimeout(function () { if (done) return; failing = false; voice.src = clip(i) + '?r=' + Date.now(); begin(); }, 400); return; }
+        var c = voice.error && voice.error.code;
+        notice('Could not load the narration for this event' + (c ? ' (error ' + c + ')' : '') + '.'); fin();
+      }
+      voice.src = clip(i);
+      begin();
+      function begin() {
+        var p = voice.play();
+        if (p && p.catch) p.catch(onBlocked);
+      }
+      function onBlocked(err) {
+        if (done) return;
+        if (err && err.name === 'NotSupportedError') { loadFailed(); return; }
+        if (!err || err.name !== 'NotAllowedError') { fin(); return; }
+        /* some phones block sound that does not start from a tap: wait for the next tap, then carry on */
+        notice('Sound is blocked by the browser. Tap the screen to hear the narration.');
+        unblock = function () { document.removeEventListener('pointerdown', unblock, true); unblock = null; banner(''); voice.play().catch(fin); };
+        document.addEventListener('pointerdown', unblock, true);
+      }
+    });
+  }
+  function notice(text) { banner(text); $('banner').dataset.v = '1'; clearTimeout(notice.t); notice.t = setTimeout(function () { if ($('banner').dataset.v) { banner(''); delete $('banner').dataset.v; } }, 6000); }
+  /* ---------- background music: a gentle, hopeful score made in the browser (no music file to license). Major key, a warm pad
+     under a soft repeating harp-like arpeggio, moving through four chords (C, G, A minor, F). It plays all through Play, low under the
+     voice, comes home to C major on the last event and swells once the last line has been spoken. ---------- */
+  var MU = { ctx: null, master: null, bus: null, voices: [], timer: 0, next: 0, beat: 0, chord: -1, hold: -1, on: false, level: 0 };
+  var EIGHTH = 0.375;                                   // 80 beats a minute, a light walking pace
+  var PAD = [[130.81, 196, 261.63, 329.63], [123.47, 196, 246.94, 293.66], [130.81, 164.81, 220, 261.63], [130.81, 174.61, 220, 261.63]];   // C  G  Am  F
+  var ARP = [[261.63, 329.63, 392, 523.25], [392, 493.88, 587.33, 783.99], [440, 523.25, 659.25, 880], [349.23, 440, 523.25, 698.46]];
+  var BASS = [65.41, 98, 110, 87.31];
+  var SHAPE = [0, 1, 2, 3, 2, 1, 2, 1];                 // one bar of eighth notes
+  var QUIET = 0.2, SOFT = 0.11, SWELL = 0.42;           // master levels: between lines, under the voice, final swell
+  function musicOK() { return S.voice && S.music; }
+  function musicBuild() {
+    var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+    var ctx = MU.ctx = new AC(), master = MU.master = ctx.createGain(); master.gain.value = 0;
+    var bus = MU.bus = ctx.createGain();
+    var len = ctx.sampleRate * 2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (var c = 0; c < 2; c++) { var d = ir.getChannelData(c); for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3); }
+    var verb = ctx.createConvolver(); verb.buffer = ir;
+    var wet = ctx.createGain(); wet.gain.value = 0.35;
+    var dry = ctx.createGain(); dry.gain.value = 0.7;
+    bus.connect(dry); bus.connect(verb); verb.connect(wet); dry.connect(master); wet.connect(master); master.connect(ctx.destination);
+    var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 0.3; lp.connect(bus);
+    for (var v = 0; v < 4; v++) {
+      var vg = ctx.createGain(); vg.gain.value = 0.11; vg.connect(lp);
+      MU.voices.push([['sine', 0], ['triangle', 4]].map(function (t) { var o = ctx.createOscillator(); o.type = t[0]; o.detune.value = t[1]; o.frequency.value = PAD[0][v]; o.connect(vg); o.start(); return o; }));
+    }
+    return true;
+  }
+  function musicChord(i) {
+    MU.chord = i; var t = MU.ctx.currentTime;
+    MU.voices.forEach(function (pair, v) { pair.forEach(function (o) { o.frequency.setTargetAtTime(PAD[i][v], t, 0.35); }); });
+  }
+  /* one soft plucked note (harp / music-box like): quick attack, gentle fade */
+  function musicPluck(f, when, gain, life) {
+    var ctx = MU.ctx, g = ctx.createGain();
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(gain, when + 0.01); g.gain.exponentialRampToValueAtTime(0.0008, when + life);
+    g.connect(MU.bus);
+    [['triangle', 1, 1], ['sine', 2, 0.22]].forEach(function (p) { var o = ctx.createOscillator(); o.type = p[0]; o.frequency.value = f * p[1]; var pg = ctx.createGain(); pg.gain.value = p[2]; o.connect(pg); pg.connect(g); o.start(when); o.stop(when + life + 0.1); });
+  }
+  /* schedules the next notes a little ahead of time, so the rhythm stays steady */
+  function musicSchedule() {
+    if (!MU.on) return;
+    while (MU.next < MU.ctx.currentTime + 0.4) {
+      var step = MU.beat % 8, bar = Math.floor(MU.beat / 8), ci = MU.hold >= 0 ? MU.hold : Math.floor(bar / 2) % 4;
+      if (ci !== MU.chord) musicChord(ci);
+      musicPluck(ARP[ci][SHAPE[step]], MU.next, step === 0 ? 0.3 : 0.2, 1.1);
+      if (step === 0 || step === 4) musicPluck(BASS[ci] * 2, MU.next, 0.2, 1.6);
+      MU.next += EIGHTH; MU.beat++;
+    }
+  }
+  function musicLevel(l, tc) { MU.level = l; if (MU.master) MU.master.gain.setTargetAtTime(l, MU.ctx.currentTime, tc || 0.6); }
+  function musicStart() {
+    if (!musicOK() || MU.on) return;
+    try {
+      if (!MU.ctx && !musicBuild()) return;
+      MU.ctx.resume(); MU.on = true; MU.beat = 0; MU.hold = -1; MU.chord = -1; MU.next = MU.ctx.currentTime + 0.15;
+      musicLevel(QUIET, 1.2); clearInterval(MU.timer); MU.timer = setInterval(musicSchedule, 100); musicSchedule();
+    } catch (e) { MU.on = false; }
+  }
+  /* fade out, then let the audio engine sleep */
+  function musicStop(fade) {
+    if (!MU.ctx) return; MU.on = false; clearInterval(MU.timer);
+    musicLevel(0, fade || 0.4);
+    var ctx = MU.ctx; setTimeout(function () { if (!MU.on && ctx.state === 'running') ctx.suspend(); }, (fade || 0.4) * 4000 + 300);
+  }
+
+  function renderVoice() {
+    var b = $('voiceBtn'); b.setAttribute('aria-pressed', String(S.voice)); b.classList.toggle('off', !S.voice);
+    b.setAttribute('aria-label', S.voice ? 'Narration on. Tap to mute' : 'Narration off. Tap to turn on');
+    var m = $('musicBtn'); m.setAttribute('aria-pressed', String(S.music)); m.textContent = 'Background music: ' + (S.music ? 'On' : 'Off');
+  }
+
   /* ---------- play ---------- */
-  function stop() { if (!S.playing) return; S.playing = false; renderCard(); }
+  function stop() { silence(); if (!S.playing) return; S.playing = false; musicStop(0.4); renderCard(); }
   async function play() {
     if (S.playing) { stop(); return; }
-    S.playing = true; renderCard(); setSheet(false);
+    S.playing = true; renderCard(); setSheet(false); musicStart(); hideCue();
     if (S.overview) { leaveOverview(); drawMarkers(); }
-    if (S.idx >= LAST) await go(0);
+    var line;
+    if (S.idx >= LAST) { line = speak(0); await go(0); } else line = speak(S.idx);
+    await line;
     while (S.playing && S.idx < LAST) {
-      await wait(1500);
+      await wait(S.voice ? 600 : 1500);
       if (!S.playing) break;
-      await go(S.idx + 1);
+      var n = S.idx + 1;
+      if (n === LAST && MU.on) MU.hold = 0;                 // the music comes home to C major for the last event
+      await Promise.all([go(n), speak(n)]);
+      if (n === LAST && MU.on) musicLevel(SWELL, 1.4);      // and swells once the last line has been spoken
     }
     /* the journey ends with the heat map and travel area, unless the user stopped it */
     var finished = S.playing && S.idx >= LAST;
-    if (finished) { await wait(2500); finished = S.playing; }
-    S.playing = false; renderCard();
-    if (finished) showOverview();
+    if (finished) { await wait(S.voice && S.music ? 3800 : 2500); finished = S.playing; }
+    S.playing = false; musicStop(1.1); renderCard();
+    if (finished) { showOverview(); if (S.mode === 'holy') { showCue(); speak(E.length); } }   // invite the visitor to try their own city, by arrow and by voice
   }
 
   /* ---------- city ---------- */
-  function applyCity(c) { S.mode = 'home'; S.home = { name: c.name, lat: c.lat, lng: c.lng }; save(); renderCard(); refreshView(); }
-  function applyHoly() { S.mode = 'holy'; save(); renderCard(); refreshView(); }
+  /* choosing a place starts afresh: back to the first event, with the Start the Journey button again (a shared link keeps its event) */
+  function newPlace(keep) { if (keep) return; stop(); leaveOverview(); S.idx = 0; showIntro(); }
+  function applyCity(c, keep) { newPlace(keep); S.mode = 'home'; S.home = { name: c.name, lat: c.lat, lng: c.lng }; save(); renderCard(); refreshView(); }
+  function applyHoly(keep) { newPlace(keep); S.mode = 'holy'; save(); renderCard(); refreshView(); }
   async function findCity(q) {
-    var preset = PRESETS.filter(function (c) { return c.name.toLowerCase() === q.toLowerCase(); })[0];
+    var preset = presetFor(q);
     if (preset) return preset;
     if (!window.google || !S.map) throw new Error('The map is not ready yet. Try again in a moment.');
     var r;
@@ -391,8 +560,13 @@
     $('heatList').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (!b) return; stop(); setSheet(false); focusCluster(+b.dataset.c); });
     $('prev').addEventListener('click', function () { stop(); go(S.idx - 1); });
     $('play').addEventListener('click', play);
+    /* centred Start button on load; any other touch just dismisses it */
+    $('start').addEventListener('click', function () { hideIntro(); play(); });
+    document.addEventListener('pointerdown', function (ev) { if (!ev.target.closest('#start')) hideIntro(); }, { capture: true });
+    $('voiceBtn').addEventListener('click', function () { S.voice = !S.voice; if (!S.voice) { silence(); musicStop(0.3); } else if (S.playing) musicStart(); save(); renderVoice(); });
+    $('musicBtn').addEventListener('click', function () { S.music = !S.music; if (!S.music) musicStop(0.4); else if (S.playing) musicStart(); save(); renderVoice(); });
     $('menuBtn').addEventListener('click', function () { setPlaceMenu(false); setSheet(!S.sheet); });
-    $('chip').addEventListener('click', function () { setPlaceMenu(!placeMenuOpen()); });
+    $('chip').addEventListener('click', function () { hideCue(); silence(); setPlaceMenu(!placeMenuOpen()); });
     $('overviewBtn').addEventListener('click', function () { setSheet(false); if (S.overview) go(S.idx); else showOverview(); });
     $('lgExit').addEventListener('click', function () { go(S.idx); });
     $('placeMenu').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (b) pickPlace(b); });
@@ -443,11 +617,11 @@
 
   buildMenu(); buildHeatMenu(); wire(); restore();
   var cityParam = readUrl();
-  renderCard();
+  renderCard(); renderVoice();
   initMap().then(async function () {
     if (!cityParam) return;
-    try { applyCity(await findCity(cityParam)); } catch (e) { /* link keeps working in Holy Land mode */ }
+    try { applyCity(await findCity(cityParam), true); } catch (e) { /* link keeps working in Holy Land mode */ }
   });
 
-  window.__app = { S: S, showOverview: showOverview, go: go, play: play, stop: stop, pt: pt, legText: legText, findCity: findCity, applyCity: applyCity, applyHoly: applyHoly, setSheet: setSheet, shareUrl: shareUrl };
+  window.__app = { S: S, MU: MU, showOverview: showOverview, go: go, play: play, stop: stop, pt: pt, legText: legText, findCity: findCity, applyCity: applyCity, applyHoly: applyHoly, setSheet: setSheet, shareUrl: shareUrl };
 })();

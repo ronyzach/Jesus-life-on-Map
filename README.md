@@ -18,9 +18,19 @@ The map fills the left side. The right side is a ladder of all 30 events (curren
 ## Overview: heat map and travel area
 Three ways in: the journey ends there by itself when **Play** finishes; on the last event **Next** becomes **Overview ›**; or use Menu > **Heat map & travel area** (a ranked list of hotspots, tap one to see it on the map, plus **Show on map**). The map zooms out to show:
 - **Heat map:** warm blobs where the events cluster (places within 7 km count as one). The numbered dots are event counts. It is drawn with map circles, not Google's heat-map layer, which Google has deprecated.
-- **Travel area:** a dashed boundary 6 km around every place the journey visits, with its size (about 6,500 km², 184 km N-S by 58 km E-W).
+- **Travel area:** a dashed boundary 6 km around every place the journey visits, with its size (about 7,100 km²).
+
+Events whose passage names no place are pinned at the best-known traditional site and labelled that way (Mount of Temptation, Mount of Beatitudes, Mount Tabor, Emmaus (site uncertain), Galilee hills), each with a note in `data.js` saying what the text does and does not say. Escape to Egypt is pinned at Old Cairo (Coptic tradition; Matthew names no town) but kept out of the heat map and the fence (`offmap` in `data.js`), so they describe the Holy Land.
 
 It follows the selected city, so the same shape and distances appear around your home. Press **Back** (or Next, Previous, Play) to return to the journey. Tuning: `CLUSTER_KM` and `FENCE_KM` in `app.js`.
+
+## Narration
+While **Play** runs, a short natural-voice line is spoken for each event, and Play waits for the line to finish before moving on, so the map and the voice stay in step. The speaker button (top, beside the menu) mutes it; the choice is remembered. Tapping Next, Previous or an event on the ladder stays silent.
+- The lines live in `data.js` (`say`, 10 to 35 words each). They are written as one connected account of what happened ("Weeks later", "That same night", "Three days later"), ending with the ascension and the angels' words in Acts 1:11.
+- **Background music** is a gentle, hopeful score made in the browser (no music file, nothing to license): a warm pad under a soft repeating harp-like arpeggio in a major key, moving through four chords (C, G, A minor, F) at a light 80 beats a minute. It plays all through Play at about 14 dB below the voice, comes home to C major on the last event and swells once the last line is spoken. Menu > Sound turns it off; the speaker button mutes everything. It is simple by design; to use a composed track instead, replace `musicStart` in `app.js` with a looped `<audio>`.
+- When the journey ends, a spoken line (`OUTRO` in `data.js`, `audio/31.mp3`: "Now, change to your favourite location.") plays while an arrow points at the place button.
+ The recordings are `audio/01.mp3` to `audio/30.mp3` (about 0.7 MB in all).
+- To change a line or the voice: edit `say` (or `VOICE` in `tools/make_audio.py`), then run `python -m pip install edge-tts` and `python tools/make_audio.py`. It uses Microsoft's free neural voices and needs the internet only while making the files, never when visitors use the app.
 
 ## 1. Google Cloud (once)
 1. Use one Google Cloud project and turn on **billing** (Maps needs it; the free monthly credit normally covers a small app).

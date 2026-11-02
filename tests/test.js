@@ -63,10 +63,10 @@ test('buffered hull encloses every point with at least the buffer to spare', fun
   assert.ok(G.areaKm2(hl) > G.areaKm2(G.hull(pts)));
 });
 test('clusters: Jerusalem sites merge, Bethlehem stays apart, Galilee shore sites merge', function () {
-  var items = []; D.EVENTS.forEach(function (e, i) { if (e.place) items.push({ i: i, key: e.place, p: D.PLACES[e.place] }); });
+  var items = []; D.EVENTS.forEach(function (e, i) { if (e.place && !D.PLACES[e.place].offmap) items.push({ i: i, key: e.place, p: D.PLACES[e.place] }); });
   var cl = G.cluster(items, 7), keysOf = function (g) { return g.map(function (x) { return x.key; }); };
-  assert.strictEqual(items.length, 24, 'located events');
-  assert.strictEqual(cl.reduce(function (s, g) { return s + g.length; }, 0), 24, 'no event lost');
+  assert.strictEqual(items.length, 29, 'located events (all but Egypt, which is off the map)');
+  assert.strictEqual(cl.reduce(function (s, g) { return s + g.length; }, 0), 29, 'no event lost');
   var jer = cl.filter(function (g) { return keysOf(g).indexOf('golgotha') >= 0; })[0];
   ['jerusalem', 'upperroom', 'gethsemane', 'olivet', 'bethany'].forEach(function (k) { assert.ok(keysOf(jer).indexOf(k) >= 0, k + ' in Jerusalem cluster'); });
   assert.ok(keysOf(jer).indexOf('bethlehem') < 0, 'Bethlehem is 9 km away');
@@ -75,7 +75,7 @@ test('clusters: Jerusalem sites merge, Bethlehem stays apart, Galilee shore site
   console.log('       clusters: ' + cl.map(function (g) { return g[0].key + ' x' + g.length; }).join(', '));
 });
 test('travel area is a plausible size and contains every place', function () {
-  var pts = Object.keys(D.PLACES).map(function (k) { return D.PLACES[k]; }), hl = G.bufferedHull(pts, 6, 16), a = G.areaKm2(hl);
+  var pts = Object.keys(D.PLACES).filter(function (k) { return !D.PLACES[k].offmap; }).map(function (k) { return D.PLACES[k]; }), hl = G.bufferedHull(pts, 6, 16), a = G.areaKm2(hl);
   assert.ok(a > 4000 && a < 20000, 'area ' + Math.round(a));
   var minLat = Math.min.apply(null, hl.map(function (p) { return p.lat; })), maxLat = Math.max.apply(null, hl.map(function (p) { return p.lat; }));
   assert.ok(minLat < 31.66 && maxLat > 33.29, 'spans Bethlehem to Caesarea Philippi (' + minLat.toFixed(3) + ' to ' + maxLat.toFixed(3) + ')');
@@ -101,8 +101,8 @@ test('every event has title, age and a well-formed passage reference', function 
 test('every referenced place exists; events without a place say why', function () {
   E.forEach(function (e, i) { if (e.place) assert.ok(P[e.place], 'place #' + (i + 1)); else assert.ok(e.pn, 'pn #' + (i + 1)); });
 });
-test('coordinates are inside the Holy Land box', function () {
-  Object.keys(P).forEach(function (k) { var p = P[k]; assert.ok(p.lat > 31 && p.lat < 33.5 && p.lng > 35 && p.lng < 36, k); });
+test('coordinates are inside the Holy Land box (Egypt: Old Cairo)', function () {
+  Object.keys(P).forEach(function (k) { var p = P[k]; if (p.offmap) { assert.ok(p.lat > 29 && p.lat < 31 && p.lng > 31 && p.lng < 32, k + ' (Old Cairo)'); return; } assert.ok(p.lat > 31 && p.lat < 33.5 && p.lng > 35 && p.lng < 36, k); });
 });
 test('Matthew, Mark, Luke, John and Acts are the only sources', function () {
   E.forEach(function (e) { assert.ok(/^(Matthew|Mark|Luke|John|Acts) /.test(e.ref), e.ref); });

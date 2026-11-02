@@ -10,10 +10,11 @@
 <title>In His Footsteps</title>
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="intro">
 <div class="stage">
   <div id="map" role="application" aria-label="Map of the life of Jesus"></div>
   <div id="bubble" class="bubble" aria-live="polite"><strong id="bTitle"></strong><span id="bMeta"></span></div>
+  <button id="start" class="start" type="button"><span aria-hidden="true">&#9654;</span> Start the Journey</button>
 </div>
 
 <header class="top">
@@ -21,8 +22,13 @@
     <button id="chip" class="chip" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="placeMenu"><span id="chipText">Holy Land</span><span class="caret" aria-hidden="true">&#9662;</span></button>
     <div id="placeMenu" class="dropdown" role="menu" aria-label="Choose a map" hidden></div>
   </div>
-  <button id="menuBtn" class="fab" type="button" aria-label="Menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet"><span aria-hidden="true">&#8942;</span></button>
+<div class="tools">
+    <button id="voiceBtn" class="fab" type="button" aria-pressed="true" aria-label="Narration on. Tap to mute"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path class="w" d="M15 9a4.2 4.2 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="x" d="M15 9.5l5 5M20 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button id="menuBtn" class="fab" type="button" aria-label="Menu" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet"><span aria-hidden="true">&#8942;</span></button>
+  </div>
 </header>
+
+<div id="pointer" class="pointer" hidden aria-hidden="true"><span>Pick your favourite place</span></div>
 
 <div id="banner" class="banner" role="alert" hidden></div>
 
@@ -40,6 +46,7 @@
     <button id="play" class="nb mid" type="button" aria-label="Play">&#9654;</button>
     <button id="next" class="nb main" type="button" aria-label="Next event">&#8250;</button>
   </div>
+  <p class="credit">Brought to you by <a href="https://indiashipments.com" target="_blank" rel="noopener noreferrer">IndiaShipments.com</a></p>
 </nav>
 
 <div id="scrim" class="scrim"></div>
@@ -66,6 +73,10 @@
       <div id="presets" class="presets"></div>
     </section>
     <section>
+      <h3>Sound</h3>
+      <button id="musicBtn" class="wide" type="button" aria-pressed="true">Background music: On</button>
+    </section>
+    <section>
       <h3>Read this passage</h3>
       <p id="passage" class="passage"></p>
       <div class="links">
@@ -78,7 +89,7 @@
       <h3>Share</h3>
       <button id="shareBtn" class="wide" type="button">Share on WhatsApp</button>
     </section>
-    <p class="fine">Places are approximate modern sites. Distances are straight-line, not walking routes. Places the passage does not name are not pinned.</p>
+    <p class="fine">Places are approximate modern sites. Distances are straight-line, not walking routes. Where a passage names no place, the pin shows the best-known traditional site and says so.</p>
   </div>
 </aside>
 
