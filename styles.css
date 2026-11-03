@@ -42,6 +42,9 @@ a{color:var(--brand)}
 .bubble::after{content:"";position:absolute;left:50%;bottom:-7px;width:14px;height:14px;background:inherit;transform:translateX(-50%) rotate(45deg);border-radius:2px}
 .bubble.nopin{top:50%;transform:translate(-50%,-50%)}
 .bubble.nopin::after{display:none}
+.bubble .b-ic{display:block;margin:-8px -12px 7px;aspect-ratio:11/4;overflow:hidden;border-radius:14px 14px 0 0;background:#2a3d5c}
+.bubble .b-ic svg{display:block;width:100%;height:100%}
+.bubble .b-ic:empty{display:none}
 .bubble strong{display:block;font:700 14px/1.25 var(--font)}
 .bubble span{display:block;margin-top:3px;font:500 11.5px/1.3 var(--font);opacity:.88}
 
@@ -137,7 +140,10 @@ body.intro .bubble{opacity:0!important}
 .start{position:absolute;left:50%;top:50%;z-index:5;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:15px 34px;border:0;border-radius:32px;background:var(--brand);color:#fff;font:700 19px/1 var(--font);letter-spacing:.02em;box-shadow:0 6px 20px rgba(16,40,52,.4);animation:startBob 1.6s ease-in-out infinite}
 .start[hidden]{display:none}
 .start::before{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid var(--brand);animation:startRing 1.6s ease-out infinite;pointer-events:none}
-.start span{font-size:15px}
+.start>span:first-child{font-size:15px}
+.start .sl{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left}
+.start b{font:inherit}
+.start small{font:500 .5em/1 var(--font);opacity:.85}
 @keyframes startBob{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.06)}}
 @keyframes startRing{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.5,1.9);opacity:0}}
 @media(prefers-reduced-motion:reduce){.start,.start::before{animation:none}.start::before{opacity:.35;transform:scale(1.12,1.3)}.bubble{transition:none}}
@@ -159,7 +165,7 @@ body.intro .bubble{opacity:0!important}
 .pointer span::before{content:"";position:absolute;left:30px;top:-8px;border:8px solid transparent;border-top:0;border-bottom-color:var(--brand)}
 @keyframes pointBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.pointer{animation:none}}
-.start{max-width:calc(100% - 16px);padding:14px 22px;font-size:16px;white-space:nowrap}
+.start{max-width:calc(100% - 16px);padding:12px 16px;gap:8px;font-size:16px;white-space:nowrap}
 
 /* quiet credit under the navigation buttons */
 .credit{margin:0;padding:0 6px calc(7px + var(--safe-b));text-align:center;font:500 10px/1.3 var(--font);letter-spacing:.01em;color:var(--muted)}

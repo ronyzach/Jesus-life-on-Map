@@ -1,19 +1,19 @@
 # In His Footsteps
 
-A phone-first map of 30 events in the life of Jesus. Google Maps only. No build step, no backend.
+A phone-first map of 29 events in the life of Jesus. Google Maps only. No build step, no backend.
 
 ## Files
 | File | Purpose |
 |---|---|
 | `index.html`, `styles.css` | The page and its layout (designed for a 375 px phone) |
 | `app.js` | Map, camera, play, menu, city search, share link |
-| `data.js` | 30 events, 17 places, NIV/KJV passage references |
+| `data.js` | 29 events, 16 places, NIV/KJV passage references |
 | `geo.js` | Distance, bearing, projection and zoom maths |
 | `config.js` | **The only file you edit: your Google Maps key** |
 | `tests/test.js` | `node tests/test.js` runs 22 checks |
 
 ## Screen layout
-The map fills the left side. The right side is a ladder of all 30 events (current one highlighted, earlier ones muted; tap any to jump) with the **previous / play / next** buttons at the bottom right. A bubble above the centred pin shows the event name, life stage, place and distance from the previous event. On the last event the next button becomes **&#9678;** and opens the heat map. Width of the ladder: `--rail-w` in `styles.css`.
+The map fills the left side. The right side is a ladder of all 29 events (current one highlighted, earlier ones muted; tap any to jump) with the **previous / play / next** buttons at the bottom right. A bubble above the centred pin shows the event name, life stage, place and distance from the previous event. On the last event the next button becomes **&#9678;** and opens the heat map. Width of the ladder: `--rail-w` in `styles.css`.
 
 ## Overview: heat map and travel area
 Three ways in: the journey ends there by itself when **Play** finishes; on the last event **Next** becomes **Overview ›**; or use Menu > **Heat map & travel area** (a ranked list of hotspots, tap one to see it on the map, plus **Show on map**). The map zooms out to show:

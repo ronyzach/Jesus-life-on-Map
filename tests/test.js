@@ -65,8 +65,8 @@ test('buffered hull encloses every point with at least the buffer to spare', fun
 test('clusters: Jerusalem sites merge, Bethlehem stays apart, Galilee shore sites merge', function () {
   var items = []; D.EVENTS.forEach(function (e, i) { if (e.place && !D.PLACES[e.place].offmap) items.push({ i: i, key: e.place, p: D.PLACES[e.place] }); });
   var cl = G.cluster(items, 7), keysOf = function (g) { return g.map(function (x) { return x.key; }); };
-  assert.strictEqual(items.length, 29, 'located events (all but Egypt, which is off the map)');
-  assert.strictEqual(cl.reduce(function (s, g) { return s + g.length; }, 0), 29, 'no event lost');
+  assert.strictEqual(items.length, 28, 'located events (all but Egypt, which is off the map)');
+  assert.strictEqual(cl.reduce(function (s, g) { return s + g.length; }, 0), 28, 'no event lost');
   var jer = cl.filter(function (g) { return keysOf(g).indexOf('golgotha') >= 0; })[0];
   ['jerusalem', 'upperroom', 'gethsemane', 'olivet', 'bethany'].forEach(function (k) { assert.ok(keysOf(jer).indexOf(k) >= 0, k + ' in Jerusalem cluster'); });
   assert.ok(keysOf(jer).indexOf('bethlehem') < 0, 'Bethlehem is 9 km away');
@@ -84,8 +84,18 @@ test('travel area is a plausible size and contains every place', function () {
 
 console.log('data');
 var E = D.EVENTS, P = D.PLACES;
-test('exactly 30 events in 7 chapters', function () {
-  assert.strictEqual(E.length, 30); assert.strictEqual(new Set(E.map(function (e) { return e.ch; })).size, 7);
+test('every event has an illustration', function () {
+  var I = require('../icons.js');
+  E.forEach(function (e) { assert.ok(I.ICONS[e.ic], e.t + ' has an icon'); assert.ok(I.svg(e.ic).indexOf('<svg') === 0); });
+});
+
+test('every event has a coloured scene', function () {
+  var S = require('../scenes.js');
+  E.forEach(function (e) { var s = S.svg(e.ic); assert.ok(s.indexOf('<svg') === 0 && s.indexOf('NaN') < 0 && s.indexOf('undefined') < 0, e.t + ' has a clean scene'); });
+});
+
+test('exactly 29 events in 7 chapters', function () {
+  assert.strictEqual(E.length, 29); assert.strictEqual(new Set(E.map(function (e) { return e.ch; })).size, 7);
 });
 test('chapters appear in order, never revisited', function () {
   var seen = [], last = null;

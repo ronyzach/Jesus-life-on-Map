@@ -78,6 +78,7 @@
     var b = $('bubble');
     if (S.overview) { b.classList.remove('show'); return; }
     var e = E[S.idx];
+    $('bIcon').innerHTML = (window.Scenes && Scenes.svg(e.ic)) || (window.Icons ? Icons.svg(e.ic) : '');
     $('bTitle').textContent = (S.idx + 1) + ' · ' + e.t;
     $('bMeta').innerHTML = esc('◷ ' + e.age + ' · ⌖ ' + placeName(S.idx)) + '<br>' + esc('↗ ' + legText(S.idx));
     b.classList.toggle('nopin', !loc(S.idx));
@@ -484,11 +485,13 @@
       await Promise.all([go(n), speak(n)]);
       if (n === LAST && MU.on) musicLevel(SWELL, 1.4);      // and swells once the last line has been spoken
     }
+    /* after a pause, a brighter voice encourages us to live it out (audio/30.mp3) */
+    if (S.playing && S.idx >= LAST) { await wait(S.voice ? 1800 : 0); if (S.playing) await speak(E.length); }
     /* the journey ends with the heat map and travel area, unless the user stopped it */
     var finished = S.playing && S.idx >= LAST;
-    if (finished) { await wait(S.voice && S.music ? 3800 : 2500); finished = S.playing; }
+    if (finished) { await wait(S.voice && S.music ? 2200 : 1500); finished = S.playing; }
     S.playing = false; musicStop(1.1); renderCard();
-    if (finished) { showOverview(); if (S.mode === 'holy') { showCue(); speak(E.length); } }   // invite the visitor to try their own city, by arrow and by voice
+    if (finished) { showOverview(); if (S.mode === 'holy') { showCue(); speak(E.length + 1); } }   // invite the visitor to try their own city, by arrow and by voice
   }
 
   /* ---------- city ---------- */
